@@ -11,8 +11,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.PriorityQueue;
 
+import de.uni_koblenz.ptsd.foxtrot.gamestatus.enums.BaitType;
 import de.uni_koblenz.ptsd.foxtrot.gamestatus.enums.CellType;
 import de.uni_koblenz.ptsd.foxtrot.gamestatus.enums.Direction;
+import de.uni_koblenz.ptsd.foxtrot.gamestatus.model.Bait;
 import de.uni_koblenz.ptsd.foxtrot.gamestatus.model.GameStatusModel;
 import de.uni_koblenz.ptsd.foxtrot.gamestatus.model.Maze;
 import de.uni_koblenz.ptsd.foxtrot.gamestatus.model.Player;
@@ -56,7 +58,7 @@ final class AStarPathfinder implements Pathfinder {
                 break;
             }
 
-            for (Node nbr : neighbors(maze, current)) {
+            for (Node nbr : neighbors(model, maze, current)) {
                 double tentativeG = current.g + (nbr.g - current.g); // nbr.g already = current.g + stepCost
                 Double bestKnown = gScore.get(nbr.state);
                 if (bestKnown == null || tentativeG < bestKnown) {
@@ -100,7 +102,7 @@ final class AStarPathfinder implements Pathfinder {
         return md + turnLB;
     }
 
-    private static List<Node> neighbors(Maze maze, Node node) {
+    private static List<Node> neighbors(GameStatusModel model, Maze maze, Node node) {
         List<Node> result = new ArrayList<>(3);
         Direction dir = normalize(node.state.dir);
 
@@ -115,16 +117,31 @@ final class AStarPathfinder implements Pathfinder {
         // step forward
         int nx = node.state.x + dx(dir);
         int ny = node.state.y + dy(dir);
-        if (isWalkable(maze, nx, ny)) {
+        if (isWalkable(model, maze, nx, ny)) {
             result.add(new Node(new State(nx, ny, dir), node, node.g + 1.0, 0, Action.STEP));
         }
         return result;
     }
 
-    private static boolean isWalkable(Maze maze, int x, int y) {
+    private static boolean isWalkable(GameStatusModel model, Maze maze, int x, int y) {
         if (x < 0 || x >= maze.getWidth() || y < 0 || y >= maze.getHeight()) return false;
         CellType type = maze.getTypeAt(x, y);
-        return type == CellType.PATH;
+        if (type != CellType.PATH) return false;
+
+        if (model != null) {
+            var baits = model.getBaits();
+            if (baits != null) {
+                for (Bait bait : baits.values()) {
+                    if (bait == null) continue;
+                    if (bait.getBaitType() == BaitType.TRAP
+                            && bait.getxPosition() == x && bait.getyPosition() == y) {
+                        return false;
+                    }
+                }
+            }
+        }
+
+        return true;
     }
 
     private static Direction normalize(Direction d) {

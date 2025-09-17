@@ -1,10 +1,7 @@
 package de.uni_koblenz.ptsd.foxtrot.robot.strategy.impl;
 
 import java.util.ArrayDeque;
-import java.util.Collection;
-import java.util.Comparator;
 import java.util.Deque;
-import java.util.Objects;
 
 import de.uni_koblenz.ptsd.foxtrot.gamestatus.enums.BaitType;
 import de.uni_koblenz.ptsd.foxtrot.gamestatus.model.Bait;
@@ -22,6 +19,9 @@ public final class AStarStrategy implements Strategy {
 
     @Override
     public Action decideNext(GameStatusModel model, Player me) {
+        if (model == null || me == null) {
+            return Action.IDLE;
+        }
         if (!currentPlan.isEmpty()) {
             return currentPlan.pollFirst();
         }
@@ -30,25 +30,53 @@ public final class AStarStrategy implements Strategy {
         if (baitMap == null || baitMap.isEmpty()) {
             return Action.IDLE;
         }
-        Collection<Bait> baits = baitMap.values();
 
-        Bait target = baits.stream()
-                .filter(Objects::nonNull)
-                .filter(Bait::isVisible)
-                .filter(b -> b.getBaitType() != BaitType.TRAP)
-                .min(Comparator.comparingInt(b ->
-                        Math.abs(b.getxPosition() - me.getxPosition()) + Math.abs(b.getyPosition() - me.getyPosition())))
-                .orElse(null);
+        Bait bestBait = null;
+        Deque<Action> bestPlan = null;
+        double bestCost = Double.POSITIVE_INFINITY;
 
-        if (target == null) {
+        for (Bait bait : baitMap.values()) {
+            if (bait == null) continue;
+            if (!bait.isVisible()) continue;
+            if (bait.getBaitType() == BaitType.TRAP) continue;
+
+            Target target = Target.of(bait, 0);
+            Deque<Action> plan = pathfinder.plan(me, target, model);
+            if (plan.isEmpty()) continue;
+
+            double cost = CostUtil.planCost(plan);
+            if (cost < bestCost || (cost == bestCost && betterTieBreak(bait, bestBait, me))) {
+                bestCost = cost;
+                bestBait = bait;
+                bestPlan = plan;
+            }
+        }
+
+        if (bestPlan == null) {
             return Action.IDLE;
         }
 
-        Target tgt = Target.of(target, 0);
-        currentPlan = pathfinder.plan(me, tgt, model);
-        if (currentPlan.isEmpty()) {
-            return Action.IDLE;
-        }
+        currentPlan = bestPlan;
         return currentPlan.pollFirst();
+    }
+
+    private static boolean betterTieBreak(Bait candidate, Bait incumbent, Player me) {
+        if (incumbent == null) {
+            return true;
+        }
+        int candDist = manhattan(candidate, me);
+        int incDist = manhattan(incumbent, me);
+        if (candDist != incDist) {
+            return candDist < incDist;
+        }
+        if (candidate.getxPosition() != incumbent.getxPosition()) {
+            return candidate.getxPosition() < incumbent.getxPosition();
+        }
+        return candidate.getyPosition() < incumbent.getyPosition();
+    }
+
+    private static int manhattan(Bait bait, Player me) {
+        return Math.abs(bait.getxPosition() - me.getxPosition())
+                + Math.abs(bait.getyPosition() - me.getyPosition());
     }
 }

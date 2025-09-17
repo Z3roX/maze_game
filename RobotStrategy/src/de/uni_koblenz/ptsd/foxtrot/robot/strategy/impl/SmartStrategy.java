@@ -139,17 +139,25 @@ public final class SmartStrategy implements Strategy {
                 default -> lastFailed = false;
             }
         }
+        boolean requestReplan = false;
         if (lastFailed) {
             stuckTicks++;
             if (DEBUG) System.out.println("[SmartStrategy] STUCK after " + lastAction +
                     " at " + nowPos.x() + "," + nowPos.y() + " dir=" + nowDir + " (cnt=" + stuckTicks + ")");
+            if (lastAction == Action.STEP) {
+                invalidateCachedPlan(me, currentTarget);
+                requestReplan = true;
+                if (DEBUG) System.out.println("[SmartStrategy] dropping cached plan for target after failed STEP");
+            } else if (stuckTicks >= 2) {
+                requestReplan = true;
+            }
         } else {
             stuckTicks = 0;
         }
         lastObservedPos = nowPos;
         lastObservedDir = nowDir;
 
-        if (stuckTicks >= 2) {
+        if (requestReplan) {
             if (DEBUG) System.out.println("[SmartStrategy] REPLAN (stuck " + stuckTicks + ")");
             planNext(model, me);
         }
@@ -160,6 +168,7 @@ public final class SmartStrategy implements Strategy {
                 int jump = Math.abs(me.getxPosition() - lastPos.x()) + Math.abs(me.getyPosition() - lastPos.y());
                 if (jump > TELEPORT_JUMP_THRESHOLD) {
                     if (DEBUG) System.out.println("[SmartStrategy] REPLAN (teleport jump=" + jump + ")");
+                    planCache.clear();
                     planNext(model, me);
                 }
             }
@@ -200,6 +209,7 @@ public final class SmartStrategy implements Strategy {
             lrOscCount++;
             if (lrOscCount >= 3) {
                 if (DEBUG) System.out.println("[SmartStrategy] LR-oscillation -> REPLAN");
+                invalidateCachedPlan(me, currentTarget);
                 planNext(model, me);
                 if (!currentPlan.isEmpty()) {
                     a = currentPlan.pollFirst();
@@ -370,13 +380,28 @@ public final class SmartStrategy implements Strategy {
 
     Deque<Action> planCached(Player p, Target t, GameStatusModel model) {
         if (p == null || t == null) return new ArrayDeque<>();
-        String dir = String.valueOf(p.getDirection());
-        String key = p.getxPosition() + "," + p.getyPosition() + "," + dir + "->" + t.pos().x() + "," + t.pos().y();
-        Deque<Action> cached = planCache.get(key);
+        String key = planCacheKey(p, t.pos());
+        Deque<Action> cached = (key != null) ? planCache.get(key) : null;
         if (cached != null) return new ArrayDeque<>(cached);
         Deque<Action> plan = pathfinder.plan(p, t, model);
         if (plan == null) plan = new ArrayDeque<>();
-        planCache.put(key, new ArrayDeque<>(plan));
+        if (key != null) {
+            planCache.put(key, new ArrayDeque<>(plan));
+        }
         return plan;
+    }
+
+    private void invalidateCachedPlan(Player actor, Target target) {
+        String key = planCacheKey(actor, target != null ? target.pos() : null);
+        if (key != null) {
+            planCache.remove(key);
+        }
+    }
+
+    private String planCacheKey(Player actor, GridPos targetPos) {
+        if (actor == null || targetPos == null) return null;
+        String dir = String.valueOf(actor.getDirection());
+        return actor.getxPosition() + "," + actor.getyPosition() + "," + dir
+                + "->" + targetPos.x() + "," + targetPos.y();
     }
 }
