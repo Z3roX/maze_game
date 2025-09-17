@@ -328,7 +328,7 @@ public final class MazeClientAppController {
         return switch (mode) {
         case OFF -> "Off";
         case ASTAR -> "A*";
-        case SMART -> "Smart";
+        case SMART -> "R*";
         };
     }
 
