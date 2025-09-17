@@ -16,7 +16,8 @@ public final class StrategyFactory {
         }
         return switch (mode) {
         case OFF -> null;
-        case ASTAR, SMART -> new ShortestPathStrategy();
+        case ASTAR -> new ShortestPathStrategy();
+        case SMART -> new RStarStrategy();
         };
     }
 }
