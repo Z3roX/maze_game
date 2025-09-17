@@ -1,24 +1,81 @@
-# Compiled class file
+############################
+# Java / Build Artefakte  #
+############################
+# Kompilate & temporäres
 *.class
-
-# Log file
 *.log
+*.tmp
+*.swp
+*.swo
 
-# BlueJ files
-*.ctxt
+# Übliche Build-Ordner (alle Module)
+bin/
+out/
+target/
+build/
+.classes/
 
-# Mobile Tools for Java (J2ME)
-.mtj.tmp/
+# Test-/Coverage-Output
+.coverage/
+.jacoco/
+*.exec
+surefire-reports/
+failsafe-reports/
 
-# Package Files #
-*.jar
-*.war
-*.nar
-*.ear
+############################
+# IDE / Editor             #
+############################
+# Eclipse
+.project
+.classpath
+.settings/
+
+# IntelliJ / Android Studio (falls mal geöffnet)
+.idea/
+*.iml
+*.iws
+.idea_modules/
+
+# VS Code
+.vscode/
+
+############################
+# Paket-/Tooling-Caches    #
+############################
+# Maven
+.mvn/wrapper/maven-wrapper.jar
+.mvn/wrapper/maven-wrapper.properties
+# (Ordner .mvn selbst behalten)
+# Gradle
+.gradle/
+**/gradle-app.setting
+# Wrapper-JARs ignorieren, Skripte behalten
+gradle/wrapper/gradle-wrapper.jar
+
+############################
+# Betriebssystem           #
+############################
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# Linux
+*~
+
+############################
+# Archive / Sonstiges      #
+############################
+*.tar
+*.gz
 *.zip
-*.tar.gz
+*.7z
 *.rar
 
-# virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
-hs_err_pid*
-replay_pid*
+
