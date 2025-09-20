@@ -20,6 +20,8 @@ public class MazeClientLogic {
 
     private final GameStatusModel model;
     private MazeGameProtocol protocol;
+    private String connectedHost;
+    private int connectedPort;
     private CommandHandler commandHandler;
     private StrategyMode strategyMode = StrategyMode.OFF;
     private StrategyMode activeRobotMode = StrategyMode.OFF;
@@ -45,11 +47,15 @@ public class MazeClientLogic {
 
     public void connect(String host, int port) throws IOException {
         LOG.info("Connecting to " + host + ":" + port);
+        this.connectedHost = host;
+        this.connectedPort = port;
         if (this.protocol != null) {
             this.disconnect();
         }
 
         CommandHandler handler = new CommandHandler();
+        this.protocol = new MazeGameProtocol(handler);
+        this.protocol.connect(host, port);
         MazeGameProtocol newProtocol = new MazeGameProtocol(handler);
         try {
             newProtocol.connect(host, port);
@@ -121,6 +127,14 @@ public class MazeClientLogic {
         if (this.protocol != null) {
             this.protocol.sendTurn('r');
         }
+    }
+
+    public String getConnectedHost() {
+    	return connectedHost;
+    }
+
+    public int getConnectedPort() {
+    	return connectedPort;
     }
 
     public synchronized void setStrategyMode(StrategyMode mode) {

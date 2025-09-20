@@ -18,4 +18,3 @@ public class WelcomeCommand implements Command {
         model.setState(State.LOGGEDIN);
     }
 }
-

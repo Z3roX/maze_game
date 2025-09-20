@@ -6,7 +6,6 @@ import de.uni_koblenz.ptsd.foxtrot.gamestatus.model.Bait;
 import de.uni_koblenz.ptsd.foxtrot.gamestatus.model.GameStatusModel;
 import javafx.collections.FXCollections;
 
-/** Adds or removes a bait at coordinates based on event. */
 public class BaitPosCommand implements Command {
     private final int x;
     private final int y;
@@ -26,16 +25,16 @@ public class BaitPosCommand implements Command {
         if (model.getBaits() == null) {
             model.setBaits(FXCollections.observableHashMap());
         }
-        int key = baitKey(x, y);
-        switch (event) {
-            case APP:
-                model.getBaits().put(key, new Bait(x, y, type, true));
-                break;
-            case VAN:
-                model.getBaits().remove(key);
-                break;
-            default:
-                break;
+        int key = baitKey(this.x, this.y);
+        switch (this.event) {
+        case APP:
+            model.getBaits().put(key, new Bait(this.x, this.y, this.type, true));
+            break;
+        case VAN:
+            model.getBaits().remove(key);
+            break;
+        default:
+            break;
         }
     }
 
@@ -44,4 +43,3 @@ public class BaitPosCommand implements Command {
         return x * 100_000 + y;
     }
 }
-

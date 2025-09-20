@@ -28,14 +28,14 @@ public class PlayerPosCommand implements Command {
         if (model.getPlayers() == null) {
             model.setPlayers(FXCollections.observableHashMap());
         }
-        Player player = model.getPlayers().get(playerId);
+        Player player = model.getPlayers().get(this.playerId);
         if (player == null) {
-            player = new Player(0, 0, playerId, "Player" + playerId);
-            model.getPlayers().put(playerId, player);
+            player = new Player(0, 0, this.playerId, "Player" + this.playerId);
+            model.getPlayers().put(this.playerId, player);
         }
-        player.setxPosition(x);
-        player.setyPosition(y);
-        player.setDirection(direction);
+
+        player.setxPosition(this.x);
+        player.setyPosition(this.y);
+        player.setDirection(this.direction);
     }
 }
-

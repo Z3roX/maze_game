@@ -10,4 +10,3 @@ public class QuitCommand implements Command {
         GameStatusModel.getInstance().setState(State.DISCONNECTED);
     }
 }
-

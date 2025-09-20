@@ -1,142 +1,193 @@
 package de.uni_koblenz.ptsd.foxtrot.robot.strategy;
 
-import java.io.IOException;
-import java.util.Objects;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
+import javafx.application.Platform;
+import javafx.beans.value.ChangeListener;
 
 import de.uni_koblenz.ptsd.foxtrot.gamestatus.model.GameStatusModel;
 import de.uni_koblenz.ptsd.foxtrot.gamestatus.model.Player;
 import de.uni_koblenz.ptsd.foxtrot.protocol.MazeGameProtocol;
-import javafx.application.Platform;
 
-/**
- * Executes strategy decisions on a background thread and forwards actions to the protocol.
- */
-public class RobotRunner {
+public final class RobotRunner implements Runnable {
     private static final Logger LOG = Logger.getLogger(RobotRunner.class.getName());
-    private static final long COMMAND_INTERVAL_MS = 200L;
-    private static final long STRATEGY_TIMEOUT_MS = 1000L;
 
     private final GameStatusModel model;
     private final Player me;
     private final MazeGameProtocol protocol;
-    private final Strategy strategy;
+
+    private volatile Strategy strategy;
     private final AtomicBoolean running = new AtomicBoolean(false);
-    private Thread worker;
+    private final AtomicBoolean readyPermitted = new AtomicBoolean(false);
+    private final AtomicBoolean readyListenerRegistered = new AtomicBoolean(false);
+    private final ChangeListener<Boolean> readyListener;
+    private Thread thread;
+
+    private long actionDelayMs = 80;
+    private Action lastLoggedAction;
+    private long lastActionLogNanos;
 
     public RobotRunner(GameStatusModel model, Player me, MazeGameProtocol protocol, Strategy strategy) {
-        this.model = Objects.requireNonNull(model, "model");
-        this.me = Objects.requireNonNull(me, "player");
-        this.protocol = Objects.requireNonNull(protocol, "protocol");
-        this.strategy = Objects.requireNonNull(strategy, "strategy");
+        this.model = model;
+        this.me = me;
+        this.protocol = protocol;
+        this.strategy = strategy;
+        this.readyListener = (obs, oldVal, newVal) -> this.readyPermitted.set(Boolean.TRUE.equals(newVal));
+        registerReadyListener();
     }
 
     public synchronized void start() {
-        if (this.running.get()) {
+        if (running.get() || strategy == null) {
             return;
         }
-        this.running.set(true);
-        this.strategy.reset();
-        this.worker = new Thread(this::runLoop, "RobotRunner");
-        this.worker.setDaemon(true);
-        this.worker.start();
+        registerReadyListener();
+        try {
+            strategy.reset();
+        } catch (Exception ex) {
+            LOG.log(Level.FINE, "Strategy reset failed before start", ex);
+        }
+        running.set(true);
+        thread = new Thread(this, "RobotRunner");
+        thread.setDaemon(true);
+        LOG.info(() -> "Robot runner thread starting with strategy " + strategy.getClass().getSimpleName()
+                + " for player " + me.getID());
+        thread.start();
     }
 
     public synchronized void stop() {
-        this.running.set(false);
-        if (this.worker != null) {
-            this.worker.interrupt();
-            try {
-                this.worker.join(TimeUnit.SECONDS.toMillis(1));
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-            }
-            this.worker = null;
+        running.set(false);
+        if (thread != null) {
+            thread.interrupt();
+            thread = null;
         }
-        // Ensure strategy state is cleared on the FX thread
-        CountDownLatch latch = new CountDownLatch(1);
-        Platform.runLater(() -> {
+        unregisterReadyListener();
+        readyPermitted.set(false);
+        LOG.info(() -> "Robot runner stopped for player " + me.getID());
+        System.out.println("[RobotRunner] stop player=" + me.getID());
+    }
+
+    public synchronized void setStrategy(Strategy strategy) {
+        this.strategy = strategy;
+        if (strategy != null) {
+            LOG.info(() -> "Robot runner switching to strategy " + strategy.getClass().getSimpleName());
+            System.out.println("[RobotRunner] switch to " + strategy.getClass().getSimpleName());
             try {
-                this.strategy.reset();
-            } finally {
-                latch.countDown();
+                strategy.reset();
+            } catch (Exception ignore) {
             }
-        });
-        try {
-            latch.await(STRATEGY_TIMEOUT_MS, TimeUnit.MILLISECONDS);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
         }
     }
 
     public boolean isRunning() {
-        return this.running.get();
+        return running.get();
     }
 
-    private void runLoop() {
-        while (this.running.get()) {
-            Action action = requestNextAction();
-            if (action == null || action == Action.IDLE) {
-                sleepQuietly(COMMAND_INTERVAL_MS);
-                continue;
-            }
-            try {
-                execute(action);
-            } catch (IOException e) {
-                LOG.log(Level.WARNING, "Failed to send robot command", e);
-                this.running.set(false);
-                break;
-            }
-            sleepQuietly(COMMAND_INTERVAL_MS);
-        }
-    }
-
-    private Action requestNextAction() {
-        CountDownLatch latch = new CountDownLatch(1);
-        AtomicReference<Action> result = new AtomicReference<>(Action.IDLE);
-        Platform.runLater(() -> {
-            try {
-                result.set(this.strategy.decideNext(this.model, this.me));
-            } catch (Exception e) {
-                LOG.log(Level.WARNING, "Error while computing next robot action", e);
-                result.set(Action.IDLE);
-            } finally {
-                latch.countDown();
-            }
-        });
+    @Override
+    public void run() {
         try {
-            if (!latch.await(STRATEGY_TIMEOUT_MS, TimeUnit.MILLISECONDS)) {
-                LOG.warning("Timed out waiting for strategy decision");
-                return Action.IDLE;
+            while (running.get()) {
+                Strategy current = this.strategy;
+                if (current == null) {
+                    break;
+                }
+
+                if (!readyPermitted.get()) {
+                    Thread.sleep(actionDelayMs);
+                    continue;
+                }
+
+                Action action = current.decideNext(model, me);
+                if (action == null) {
+                    if (LOG.isLoggable(Level.FINE)) {
+                        LOG.fine(() -> current.getClass().getSimpleName() + " returned null action; waiting");
+                    }
+                    Thread.sleep(actionDelayMs);
+                    continue;
+                }
+
+                long now = System.nanoTime();
+                boolean logAction = action != lastLoggedAction || action != Action.IDLE
+                        || now - lastActionLogNanos >= 1_000_000_000L;
+                if (logAction) {
+                    LOG.info(() -> "Strategy " + current.getClass().getSimpleName() + " -> " + action
+                            + " (pos=" + me.getxPosition() + "," + me.getyPosition() + ", dir=" + me.getDirection()
+                            + ")");
+                    lastLoggedAction = action;
+                    lastActionLogNanos = now;
+                }
+
+                if (action == Action.IDLE) {
+                    Thread.sleep(actionDelayMs);
+                    continue;
+                }
+
+                switch (action) {
+                    case STEP -> {
+                        protocol.sendStep();
+                        consumeReady();
+                    }
+                    case TURN_LEFT -> {
+                        protocol.sendTurn('l');
+                        consumeReady();
+                    }
+                    case TURN_RIGHT -> {
+                        protocol.sendTurn('r');
+                        consumeReady();
+                    }
+                    default -> {
+                    }
+                }
+
+                Thread.sleep(actionDelayMs);
             }
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            return Action.IDLE;
-        }
-        return result.get();
-    }
-
-    private void execute(Action action) throws IOException {
-        switch (action) {
-        case STEP -> this.protocol.sendStep();
-        case TURN_LEFT -> this.protocol.sendTurn('l');
-        case TURN_RIGHT -> this.protocol.sendTurn('r');
-        case IDLE -> {
-            // nothing to do
-        }
+        } catch (InterruptedException ignored) {
+        } catch (Exception ex) {
+            running.set(false);
+            LOG.log(Level.WARNING, "Robot runner stopped due to exception", ex);
         }
     }
 
-    private void sleepQuietly(long millis) {
-        try {
-            Thread.sleep(millis);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
+    private void consumeReady() {
+        readyPermitted.set(false);
+        Runnable task = () -> model.setReady(false);
+        if (Platform.isFxApplicationThread()) {
+            task.run();
+        } else {
+            Platform.runLater(task);
+        }
+    }
+
+    private void registerReadyListener() {
+        Runnable task = () -> {
+            readyPermitted.set(model.isReady());
+            if (!readyListenerRegistered.getAndSet(true)) {
+                model.readyProperty().addListener(readyListener);
+            }
+        };
+        if (Platform.isFxApplicationThread()) {
+            task.run();
+        } else {
+            Platform.runLater(task);
+        }
+    }
+
+    private void unregisterReadyListener() {
+        Runnable task = () -> {
+            if (readyListenerRegistered.getAndSet(false)) {
+                model.readyProperty().removeListener(readyListener);
+            }
+        };
+        if (Platform.isFxApplicationThread()) {
+            task.run();
+        } else {
+            Platform.runLater(task);
         }
     }
 }
+
+
+
+
+

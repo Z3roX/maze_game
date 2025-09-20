@@ -22,6 +22,7 @@
         <HBox alignment="CENTER_LEFT" spacing="10" BorderPane.alignment="CENTER">
             <padding><Insets bottom="10" left="10" right="10" top="10" /></padding>
             <children>
+            	<Label fx:id="connectionLabel" text="Not connected" />
             </children>
         </HBox>
     </top>
@@ -75,6 +76,7 @@
             <children>
                 <Label text="Zoom:"/>
                 <Slider fx:id="zoomSlider" prefWidth="200" />
+                <Button text="Disconnect" onAction="#disconnect" />
             </children>
         </HBox>
     </bottom>

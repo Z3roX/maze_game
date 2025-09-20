@@ -18,8 +18,12 @@ import javafx.collections.FXCollections;
 import javafx.collections.MapChangeListener;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
+import javafx.fxml.FXMLLoader;
 import javafx.scene.Node;
+import javafx.scene.Parent;
+import javafx.scene.Scene;
 import javafx.scene.control.Button;
+import javafx.scene.control.Label;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.ListCell;
 import javafx.scene.control.Slider;
@@ -44,6 +48,8 @@ public final class MazeClientAppController {
     private ComboBox<StrategyMode> strategyChoice;
     @FXML
     private Slider zoomSlider;
+    @FXML 
+    private Label connectionLabel;
 
     @FXML
     private TableView<Player> scoreTable;
@@ -117,6 +123,10 @@ public final class MazeClientAppController {
             this.turnLeftButton.setDisable(!newVal);
             this.turnRightButton.setDisable(!newVal);
         });
+        
+        String host = logic.getConnectedHost();
+        int port = logic.getConnectedPort();
+        connectionLabel.setText("Connected to " + host + ":" + port);
 
         this.stepButton.setDisable(true);
         this.turnLeftButton.setDisable(true);
@@ -138,11 +148,25 @@ public final class MazeClientAppController {
     private void disconnect() {
         try {
             this.logic.disconnect();
+            GameStatusModel.getInstance().reset();
         } catch (Exception ignored) {
         } finally {
             this.scoreItems.clear();
             this.mazeGroup.getChildren().clear();
             this.entityGroup.getChildren().clear();
+            try {
+                FXMLLoader loader = new FXMLLoader(this.getClass()
+                        .getResource("/de/uni_koblenz/ptsd/foxtrot/mazeclient/gui/resources/ConnectDialog.fxml"));
+                Parent root = loader.load();
+                Stage stage = new Stage();
+                stage.setTitle("Connect to Maze Server");
+                stage.setScene(new Scene(root));
+                stage.setResizable(false);
+                stage.show();
+                ((Stage) this.stepButton.getScene().getWindow()).close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
         }
     }
 
@@ -228,7 +252,7 @@ public final class MazeClientAppController {
         view.setFitWidth(TILE_SIZE * 0.8);
         view.setFitHeight(TILE_SIZE * 0.8);
         view.setPreserveRatio(true);
-        String prefix = id <= 3 ? "Dummy" : "Player";
+        String prefix = player.getNickName().toLowerCase().contains("dummy") ? "Dummy" : "Player";
 
         Map<Direction, String> dirMap = Map.of(Direction.N, "up", Direction.S, "down", Direction.E, "right",
                 Direction.W, "left");
@@ -327,8 +351,10 @@ public final class MazeClientAppController {
     private static String formatStrategyMode(StrategyMode mode) {
         return switch (mode) {
         case OFF -> "Off";
-        case ASTAR -> "A*";
-        case SMART -> "R*";
+        case SMART_BALANCED -> "Smart - Balanced";
+        case SMART_GEM_RUSH -> "Smart - Gem Rush";
+        case SMART_INTERCEPT_AGGRO -> "Smart - Intercept Aggro";
+        case SMART_DEFENSIVE -> "Smart - Defensive";
         };
     }
 

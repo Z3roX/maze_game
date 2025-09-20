@@ -30,6 +30,8 @@ public class LoginDialogController {
 
         try {
             MazeClientLogic.getInstance().login(nickname);
+            
+
             MazeClientLogic.getInstance().requestMaze();
 
             FXMLLoader loader = new FXMLLoader(this.getClass()
@@ -42,6 +44,7 @@ public class LoginDialogController {
 
             ((Stage) this.playButton.getScene().getWindow()).close();
 
+            
         } catch (IOException e) {
             this.showError("Login failed: " + e.getMessage());
         }

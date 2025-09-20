@@ -4,4 +4,3 @@ package de.uni_koblenz.ptsd.foxtrot.commandhandler.commands;
 public interface Command {
     void execute();
 }
-

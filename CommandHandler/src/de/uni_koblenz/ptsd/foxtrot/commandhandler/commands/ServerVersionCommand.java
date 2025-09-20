@@ -18,4 +18,3 @@ public class ServerVersionCommand implements Command {
         model.setState(State.CONNECTED);
     }
 }
-
