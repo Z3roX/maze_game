@@ -9,9 +9,47 @@ import de.uni_koblenz.ptsd.foxtrot.gamestatus.model.Player;
 import de.uni_koblenz.ptsd.foxtrot.robot.strategy.GridPos;
 import javafx.collections.ObservableMap;
 
+/**
+* Lightweight opponent-competition heuristics used by the smart strategy.
+*
+* <p>Given a goal cell, this utility estimates how many opponents can plausibly
+* contest the goal before or around the same time as us. It is designed to be
+* fast: it first filters by Manhattan distance and, for a configurable number
+* of nearest opponents, it may consult a supplied route planner for a more
+* faithful cost. The result is returned as a weighted "pressure" value that
+* indicates how much opponent competition to expect.
+*
+* <p>This class is stateless and not thread-safe by itself, but it holds no
+* mutable global state and can be freely re-used.
+*/
+
 final class OpponentHeuristics {
     private OpponentHeuristics() {}
 
+
+    /**
+    * Estimate opponent pressure near a goal.
+    *
+    * <p>Counts (with weights) opponents that could reach the {@code goal}
+    * not much slower than we can. A cheap Manhattan pre-check keeps it fast.
+    * Optionally, the provided {@code planner} is used for more accurate costs
+    * for a subset of opponents.
+    *
+    * @param goal target cell to evaluate
+    * @param me our player (excluded from the opponent set)
+    * @param model current game state providing the set of players
+    * @param topLOpponents consider at most this many nearest opponents for
+    * expensive re-evaluation (by cost)
+    * @param planner callback that returns a planned route to {@code goal}
+    * for a given player; may be ignored for some players
+    * @return a non-negative pressure value; larger means stronger opponent
+    * competition/likelihood of interception
+    *
+    * @implNote Internally this method uses Manhattan distance as a quick bound
+    * and compares it against our own estimated route cost plus a small
+    * slack. Opponents within that bound increment a counter that is
+    * finally scaled by a weight.
+    */
     static double estimateOpponentCost(GridPos goal, Player me, GameStatusModel model, int topLOpponents,
             Function<Player, AStarPathfinder.Result> planner) {
         ObservableMap<Integer, Player> players = model.getPlayers();

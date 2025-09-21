@@ -1,5 +1,18 @@
 package de.uni_koblenz.ptsd.foxtrot.robot.strategy.impl;
 
+/**
+* Central configuration for {@link SmartStrategy} and its helper components.
+*
+* <p>This immutable bag of tuning knobs influences candidate generation,
+* scoring, opponent handling, exploration fallback, and hysteresis behavior.
+* All fields are {@code public final} for simple inspection and dependency-free
+* wiring. Typical usage is to construct a single instance (e.g., via a
+* factory) and share it across the strategy objects.</p>
+*
+* <h2>Thread-safety</h2>
+* <p>Instances are immutable and therefore thread-safe.</p>
+*/
+
 public final class SmartTuning {
     // Scoring
     public final double costWeight;            // lambda in score = value - lambda * cost

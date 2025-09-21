@@ -11,6 +11,18 @@ import de.uni_koblenz.ptsd.foxtrot.gamestatus.model.GameStatusModel;
 import de.uni_koblenz.ptsd.foxtrot.gamestatus.model.Player;
 import de.uni_koblenz.ptsd.foxtrot.protocol.MazeGameProtocol;
 
+/**
+ * Orchestrates periodic decision making for the robot using a {@code Strategy}
+ * and dispatches resulting {@code Action}s to the game protocol.
+ * <p>
+ * This runner is designed to be executed on a background thread. UI-facing work
+ * is marshalled onto the JavaFX Application Thread via {@link javafx.application.Platform}.
+ * </p>
+ * <h2>Threading</h2>
+ * The runner itself is thread-safe. It avoids blocking the FX thread and uses
+ * atomics/listeners to react to model changes.
+ */
+
 public final class RobotRunner implements Runnable {
     private static final Logger LOG = Logger.getLogger(RobotRunner.class.getName());
 
@@ -84,7 +96,8 @@ public final class RobotRunner implements Runnable {
         return running.get();
     }
 
-    @Override
+    @Override
+
     public void run() {
         try {
             while (running.get()) {

@@ -3,8 +3,12 @@ package de.uni_koblenz.ptsd.foxtrot.commandhandler.commands;
 import de.uni_koblenz.ptsd.foxtrot.gamestatus.enums.State;
 import de.uni_koblenz.ptsd.foxtrot.gamestatus.model.GameStatusModel;
 
-/** Sets server identifier/version and marks state as CONNECTED. */
+/**
+* Stores the server identifier/version in the {@link GameStatusModel} and sets
+* the state to {@link State#CONNECTED}.
+*/ 
 public class ServerVersionCommand implements Command {
+
     private final int serverId;
 
     public ServerVersionCommand(int serverId) {

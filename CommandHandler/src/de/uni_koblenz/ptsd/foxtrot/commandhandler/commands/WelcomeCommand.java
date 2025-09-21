@@ -3,8 +3,13 @@ package de.uni_koblenz.ptsd.foxtrot.commandhandler.commands;
 import de.uni_koblenz.ptsd.foxtrot.gamestatus.enums.State;
 import de.uni_koblenz.ptsd.foxtrot.gamestatus.model.GameStatusModel;
 
-/** Marks the client as logged in and stores its id. */
+/**
+* Marks the client as logged in after a successful handshake/connection and
+* stores its client ID in the {@link GameStatusModel}.
+*/
+
 public class WelcomeCommand implements Command {
+
     private final int clientId;
 
     public WelcomeCommand(int clientId) {

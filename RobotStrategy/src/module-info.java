@@ -6,6 +6,7 @@ module RobotStrategy {
     requires transitive MazeGameProtocol;
     requires transitive CommandHandler;
     requires transitive javafx.base;
+    requires javafx.graphics;
     requires java.logging;
 }
 

@@ -4,7 +4,14 @@ import de.uni_koblenz.ptsd.foxtrot.gamestatus.model.GameStatusModel;
 import de.uni_koblenz.ptsd.foxtrot.gamestatus.model.Player;
 import javafx.collections.FXCollections;
 
-/** Updates the score of a player. */
+/**
+* Updates the score of a player in the {@link GameStatusModel}.
+* <p>
+* If the player with the given ID does not exist yet, a placeholder player is created
+* and the score is set.
+* </p>
+*
+*/
 public class PlayerScoreCommand implements Command {
     private final int playerId;
     private final int score;
@@ -14,6 +21,7 @@ public class PlayerScoreCommand implements Command {
         this.score = score;
     }
 
+    /** Ensures the player exists in the model and sets the score. */
     @Override
     public void execute() {
         GameStatusModel model = GameStatusModel.getInstance();

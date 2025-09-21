@@ -7,7 +7,10 @@ import javafx.application.Platform;
 import javafx.scene.control.Alert;
 
 
-/** Marks the client as disconnected due to termination. */
+/**
+* Marks the client as disconnected because the server terminated the connection
+* and shows an informational dialog.
+*/
 public class TerminateCommand implements Command {
 
     @Override

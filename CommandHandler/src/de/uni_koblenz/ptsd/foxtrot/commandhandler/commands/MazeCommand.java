@@ -5,7 +5,15 @@ import de.uni_koblenz.ptsd.foxtrot.gamestatus.enums.CellType;
 import de.uni_koblenz.ptsd.foxtrot.gamestatus.model.GameStatusModel;
 import de.uni_koblenz.ptsd.foxtrot.gamestatus.model.Maze;
 
-/** Sets the maze in the GameStatusModel and marks state as NOTLOGGEDIN. */
+/**
+* Stores/updates the game maze layout in the {@link GameStatusModel}.
+* <p>
+* The command records layout data (e.g., grid, walls, spawn points) and may
+* update dependent values (width, height, passable cells).
+* </p>
+*
+*/
+
 public class MazeCommand implements Command {
     private final int width;
     private final int height;
@@ -16,6 +24,10 @@ public class MazeCommand implements Command {
         this.height = height;
         this.cells = cells;
     }
+
+    /**
+    * Applies the maze layout to the model.
+    */
 
     @Override
     public void execute() {

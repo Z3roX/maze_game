@@ -17,6 +17,41 @@ import de.uni_koblenz.ptsd.foxtrot.robot.strategy.Strategy;
 import de.uni_koblenz.ptsd.foxtrot.robot.strategy.Target;
 import javafx.collections.ObservableMap;
 
+/**
+* High-level, score-driven strategy for selecting targets and routes.
+*
+* <p>This strategy acts as an orchestrator: it generates candidate targets,
+* evaluates them using a simple scoring function (primarily based on route
+* cost), optionally attempts opponent interception, and applies a
+* {@link HysteresisController hysteresis gate} to avoid jittery switching
+* between targets. The final result is exposed as a {@link Candidate} which
+* contains the target, the sequence of {@link Action}s to reach it, the
+* accumulated cost, and a scalar score (higher is better).
+*
+* <h2>Pipeline</h2>
+* <ol>
+* <li><b>Primary candidate:</b> Determine the most promising target under the current
+* objective (e.g., closest gem). Plan a route using {@link AStarPathfinder}.</li>
+* <li><b>Interception (optional):</b> If enabled via {@link SmartTuning}, call
+* {@link InterceptPlanner} to check if we can beat an opponent to a gem by
+* heading to a nearby intercept cell.</li>
+* <li><b>Exploration fallback:</b> If no competitive plan exists, call
+* {@link ExplorationPlanner} to propose a safe, useful target (frontier or
+* curiosity-driven).</li>
+* <li><b>Hysteresis:</b> Compare the newly chosen candidate against the current one.
+* Only switch if it is sufficiently better and cooldown permits.</li>
+* </ol>
+*
+* <h2>Thread-safety</h2>
+* <p>This class is not thread-safe. Create one instance per controlled player or
+* guard external access.</p>
+*
+* <h2>Scoring</h2>
+* <p>The default score is roughly {@code -cost} with small bonuses for special
+* situations (e.g., successful intercept). Callers can refine {@link SmartTuning}
+* to bias the selection.</p>
+*/
+
 public final class SmartStrategy implements Strategy {
 
     // tuning snapshot

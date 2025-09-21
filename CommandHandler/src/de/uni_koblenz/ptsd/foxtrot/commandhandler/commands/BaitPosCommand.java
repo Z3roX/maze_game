@@ -6,6 +6,15 @@ import de.uni_koblenz.ptsd.foxtrot.gamestatus.model.Bait;
 import de.uni_koblenz.ptsd.foxtrot.gamestatus.model.GameStatusModel;
 import javafx.collections.FXCollections;
 
+/**
+* Updates the bait position in the {@link GameStatusModel}.
+* <p>
+* If the bait object does not exist yet, it may be created. Depending on the game,
+* setting the bait position can trigger events such as scoring or respawn.
+* </p>
+*
+*/
+
 public class BaitPosCommand implements Command {
     private final int x;
     private final int y;
@@ -18,6 +27,10 @@ public class BaitPosCommand implements Command {
         this.type = type;
         this.event = event;
     }
+
+    /**
+    * Writes the new bait position to the model.
+    */
 
     @Override
     public void execute() {

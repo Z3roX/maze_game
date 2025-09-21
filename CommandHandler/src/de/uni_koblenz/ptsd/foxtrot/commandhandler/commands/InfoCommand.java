@@ -6,7 +6,18 @@ import javafx.application.Platform;
 import javafx.scene.control.Alert;
 
 
-/** Holds an info code from the server; no-op for model. */
+/**
+* Displays or logs an informational message for the user (e.g., a JavaFX dialog).
+* <p>
+* Useful to communicate server messages, status changes, or error situations in a
+* user-friendly way.
+* </p>
+*
+* <h2>Threading</h2>
+* <p>UI interactions are typically executed on the JavaFX Application Thread via
+* {@link Platform#runLater(Runnable)}.</p>
+*
+*/
 public class InfoCommand implements Command {
     private final int infoCode;
 
@@ -17,6 +28,11 @@ public class InfoCommand implements Command {
     public int getInfoCode() {
         return this.infoCode;
     }
+
+    /**
+    * Performs the display/logging of the message.
+    * Implementations may open an {@link Alert}, write to logs, etc.
+    */
 
     @Override
     public void execute() {
